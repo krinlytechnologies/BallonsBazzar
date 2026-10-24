@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens for the BalloonBazaar brand.
+ * Palette: warm, festive and polished — a confident coral/magenta paired
+ * with a deep lagoon teal and a marigold accent, set against a soft cream
+ * canvas instead of stark white/black. Deliberately avoids the generic
+ * purple-gradient-on-white look common to AI-generated storefronts.
+ */
+@theme {
+  /* Brand colors */
+  --color-fiesta-50: #fff1f5;
+  --color-fiesta-100: #ffe0ea;
+  --color-fiesta-200: #ffc2d6;
+  --color-fiesta-300: #ff96b8;
+  --color-fiesta-400: #fb6397;
+  --color-fiesta-500: #e8457c;
+  --color-fiesta-600: #c92c62;
+  --color-fiesta-700: #a31f4e;
+  --color-fiesta-800: #811c42;
+  --color-fiesta-900: #6c1b3a;
+
+  --color-lagoon-50: #eafbfa;
+  --color-lagoon-100: #cff4f2;
+  --color-lagoon-200: #a0e8e5;
+  --color-lagoon-300: #69d4d1;
+  --color-lagoon-400: #3bb6b4;
+  --color-lagoon-500: #1f9896;
+  --color-lagoon-600: #157a7a;
+  --color-lagoon-700: #146264;
+  --color-lagoon-800: #144f52;
+  --color-lagoon-900: #0f3f42;
+
+  --color-marigold-50: #fff9ea;
+  --color-marigold-100: #ffeec4;
+  --color-marigold-200: #ffdd8d;
+  --color-marigold-300: #ffc54f;
+  --color-marigold-400: #fdac22;
+  --color-marigold-500: #f5930f;
+  --color-marigold-600: #d4730a;
+  --color-marigold-700: #ab550c;
+  --color-marigold-800: #8a4410;
+  --color-marigold-900: #713911;
+
+  --color-ink-50: #f6f4f7;
+  --color-ink-100: #e9e4eb;
+  --color-ink-200: #d1c7d6;
+  --color-ink-300: #ac9bb3;
+  --color-ink-400: #83708d;
+  --color-ink-500: #645371;
+  --color-ink-600: #4d3e59;
+  --color-ink-700: #3b2f46;
+  --color-ink-800: #281f31;
+  --color-ink-900: #1b1522;
+
+  --color-cream-50: #fffdf9;
+  --color-cream-100: #fffaf0;
+  --color-cream-200: #fcf2e1;
+
+  /* Semantic aliases */
+  --color-brand: var(--color-fiesta-500);
+  --color-brand-strong: var(--color-fiesta-600);
+  --color-accent: var(--color-marigold-500);
+  --color-support: var(--color-lagoon-500);
+  --color-surface: var(--color-cream-50);
+  --color-surface-muted: var(--color-cream-200);
+  --color-surface-inverse: var(--color-ink-900);
+  --color-foreground: var(--color-ink-800);
+  --color-foreground-muted: var(--color-ink-500);
+  --color-foreground-inverse: var(--color-cream-50);
+
+  /* Typography */
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Radius */
+  --radius-brand-sm: 0.5rem;
+  --radius-brand: 1rem;
+  --radius-brand-lg: 1.75rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-fiesta-200);
+  color: var(--color-ink-900);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-fiesta-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
