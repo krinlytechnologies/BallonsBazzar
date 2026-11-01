@@ -89,6 +89,15 @@ body {
   font-family: var(--font-sans);
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 ::selection {
   background-color: var(--color-fiesta-200);
   color: var(--color-ink-900);

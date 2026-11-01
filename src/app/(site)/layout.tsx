@@ -4,7 +4,7 @@ import { siteConfig } from "@/data/site";
 import { SiteHeader } from "@/components/brand/SiteHeader";
 import { SiteFooter } from "@/components/brand/SiteFooter";
 import { ScrollProgressBar } from "@/components/ui/ScrollProgressBar";
-import "./globals.css";
+import "../globals.css";
 
 const fraunces = Fraunces({
   variable: "--font-display",

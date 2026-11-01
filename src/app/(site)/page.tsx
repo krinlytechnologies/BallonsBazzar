@@ -1,4 +1,5 @@
 import { Hero } from "@/components/home/Hero";
+import { CircularCategories } from "@/components/home/CircularCategories";
 import { CelebrationCategories } from "@/components/home/CelebrationCategories";
 import { SignatureShowcase } from "@/components/home/SignatureShowcase";
 import { WhatWeCreate } from "@/components/home/WhatWeCreate";
@@ -11,6 +12,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <CircularCategories />
       <CelebrationCategories />
       <SignatureShowcase />
       <WhatWeCreate />

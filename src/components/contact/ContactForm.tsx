@@ -2,138 +2,179 @@
 
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { celebrationCategories } from "@/data/celebrations";
-import { cn } from "@/lib/utils";
-
-type Status = "idle" | "submitting" | "success" | "error";
+import { occasionOptions } from "@/data/occasions";
+import { siteConfig } from "@/data/site";
+import { buildEnquiryMessage, validateEnquiry, type EnquiryErrors, type EnquiryFields } from "@/lib/enquiry";
+import { buildWhatsAppUrl, cn } from "@/lib/utils";
 
 const inputClasses =
   "w-full rounded-brand-sm border border-ink-800/20 bg-cream-50 px-4 py-3 text-sm text-ink-900 placeholder:text-ink-400 focus-visible:border-fiesta-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fiesta-500";
 
+type Fallback = { message: string; reason: "unconfigured" | "blocked" };
+
 export function ContactForm() {
   const searchParams = useSearchParams();
   const presetOccasion = searchParams.get("occasion") ?? "";
+  const kitName = searchParams.get("kitName") ?? undefined;
 
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<EnquiryErrors>({});
+  const [opened, setOpened] = useState(false);
+  const [fallback, setFallback] = useState<Fallback | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("submitting");
-    setErrorMessage(null);
-    setFieldErrors({});
-
     const form = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+    const fields: EnquiryFields = {
+      name: String(form.get("name") ?? ""),
+      phone: String(form.get("phone") ?? ""),
+      eventType: String(form.get("eventType") ?? ""),
+      eventDate: String(form.get("eventDate") ?? ""),
+      venue: String(form.get("venue") ?? ""),
+      budget: String(form.get("budget") ?? ""),
+      requirements: String(form.get("requirements") ?? ""),
+      kitName,
+    };
 
-    try {
-      const response = await fetch("/api/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json();
+    const nextErrors = validateEnquiry(fields);
+    setErrors(nextErrors);
+    setOpened(false);
+    setCopied(false);
+    if (Object.keys(nextErrors).length > 0) {
+      setFallback(null);
+      return;
+    }
 
-      if (!response.ok) {
-        setStatus("error");
-        setErrorMessage(data.error ?? "Something went wrong. Please try again.");
-        setFieldErrors(data.fieldErrors ?? {});
-        return;
-      }
+    const message = buildEnquiryMessage(fields);
+    const number = siteConfig.contact.whatsappNumber;
+    if (!number) {
+      setFallback({ message, reason: "unconfigured" });
+      return;
+    }
 
-      setStatus("success");
-      event.currentTarget.reset();
-    } catch {
-      setStatus("error");
-      setErrorMessage("We couldn't reach the server. Check your connection and try again.");
+    const popup = window.open(buildWhatsAppUrl(number, message), "_blank");
+    if (popup) {
+      popup.opener = null;
+      setFallback(null);
+      setOpened(true);
+    } else {
+      setFallback({ message, reason: "blocked" });
     }
   }
 
-  if (status === "success") {
-    return (
-      <div className="rounded-brand-lg border border-lagoon-200 bg-lagoon-50 p-8 text-center">
-        <h3 className="font-[family-name:var(--font-display)] text-2xl text-lagoon-800">
-          Thanks — your enquiry is in.
-        </h3>
-        <p className="mt-2 text-sm text-lagoon-700">
-          We&apos;ll get back to you about your date and vision shortly.
-        </p>
-      </div>
-    );
+  async function copyMessage(message: string) {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-      {/* Honeypot field — hidden from real visitors, catches basic bots */}
-      <input
-        type="text"
-        name="honeypot"
-        tabIndex={-1}
-        autoComplete="off"
-        className="hidden"
-        aria-hidden="true"
-      />
+      {kitName ? (
+        <p className="rounded-brand-sm bg-marigold-50 px-4 py-3 text-sm font-semibold text-marigold-800">
+          Enquiring about: {kitName}
+        </p>
+      ) : null}
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Name" name="name" error={fieldErrors.name}>
-          <input id="name" type="text" name="name" required className={inputClasses} />
+        <Field label="Name" name="name" error={errors.name}>
+          <input id="name" type="text" name="name" autoComplete="name" className={inputClasses} />
         </Field>
-        <Field label="Email" name="email" error={fieldErrors.email}>
-          <input id="email" type="email" name="email" required className={inputClasses} />
+        <Field label="Phone" name="phone" error={errors.phone}>
+          <input id="phone" type="tel" name="phone" autoComplete="tel" className={inputClasses} />
         </Field>
-        <Field label="Phone" name="phone" error={fieldErrors.phone}>
-          <input id="phone" type="tel" name="phone" required className={inputClasses} />
-        </Field>
-        <Field label="Event date" name="eventDate" error={fieldErrors.eventDate}>
-          <input id="eventDate" type="date" name="eventDate" required className={inputClasses} />
-        </Field>
-        <Field label="Occasion" name="occasion" error={fieldErrors.occasion}>
-          <select
-            id="occasion"
-            name="occasion"
-            required
-            defaultValue={presetOccasion}
-            className={inputClasses}
-          >
+        <Field label="Event type" name="eventType" error={errors.eventType}>
+          <select id="eventType" name="eventType" defaultValue={presetOccasion} className={inputClasses}>
             <option value="" disabled>
-              Select an occasion
+              Select an event type
             </option>
-            {celebrationCategories.map((category) => (
-              <option key={category.slug} value={category.slug}>
-                {category.title}
+            {occasionOptions.map((occasion) => (
+              <option key={occasion.slug} value={occasion.slug}>
+                {occasion.title}
               </option>
             ))}
           </select>
         </Field>
-        <Field label="Guest count (optional)" name="guestCount">
-          <input id="guestCount" type="number" name="guestCount" min={1} className={inputClasses} />
+        <Field label="Event date" name="eventDate" error={errors.eventDate}>
+          <input id="eventDate" type="date" name="eventDate" className={inputClasses} />
+        </Field>
+        <Field label="Venue (optional)" name="venue">
+          <input id="venue" type="text" name="venue" className={inputClasses} />
+        </Field>
+        <Field label="Budget (optional)" name="budget">
+          <input id="budget" type="text" name="budget" placeholder="e.g. ₹10,000 – ₹15,000" className={inputClasses} />
         </Field>
       </div>
 
-      <Field label="Tell us about your vision" name="message" error={fieldErrors.message}>
+      <Field label="Requirements" name="requirements" error={errors.requirements}>
         <textarea
-          id="message"
-          name="message"
-          required
+          id="requirements"
+          name="requirements"
           rows={4}
-          placeholder="Colours, theme, venue — whatever helps us picture it."
+          defaultValue={kitName ? `Enquiring about the "${kitName}" kit. ` : undefined}
+          placeholder="Colours, theme, décor you have in mind — whatever helps us picture it."
           className={inputClasses}
         />
       </Field>
 
-      {status === "error" && errorMessage ? (
-        <p role="alert" className="rounded-brand-sm bg-fiesta-50 px-4 py-3 text-sm text-fiesta-700">
-          {errorMessage}
+      {opened ? (
+        <p role="status" className="rounded-brand-sm bg-lagoon-50 px-4 py-3 text-sm text-lagoon-800">
+          WhatsApp has opened with your enquiry. Just tap send to deliver it to us.
         </p>
+      ) : null}
+
+      {fallback ? (
+        <div role="alert" className="space-y-4 rounded-brand-sm bg-fiesta-50 px-4 py-4 text-sm text-fiesta-800">
+          <p className="font-semibold">
+            {fallback.reason === "unconfigured"
+              ? "WhatsApp enquiries aren't set up on this site yet."
+              : "WhatsApp couldn't open from this browser."}
+          </p>
+          <p>Copy your message and paste it into WhatsApp, or call us directly.</p>
+          <textarea
+            readOnly
+            aria-label="Your enquiry message"
+            value={fallback.message}
+            rows={8}
+            onFocus={(event) => event.currentTarget.select()}
+            className={cn(inputClasses, "text-xs")}
+          />
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => copyMessage(fallback.message)}
+              className="inline-flex items-center justify-center rounded-full border border-fiesta-500 px-5 py-2 text-sm font-semibold text-fiesta-700 transition-colors hover:bg-fiesta-100"
+            >
+              {copied ? "Copied" : "Copy message"}
+            </button>
+            {fallback.reason === "blocked" && siteConfig.contact.whatsappNumber ? (
+              <a
+                href={buildWhatsAppUrl(siteConfig.contact.whatsappNumber, fallback.message)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-full bg-fiesta-500 px-5 py-2 text-sm font-semibold text-cream-50 transition-colors hover:bg-fiesta-600"
+              >
+                Open WhatsApp
+              </a>
+            ) : null}
+            <a
+              href={siteConfig.contact.phoneHref}
+              className="inline-flex items-center justify-center rounded-full border border-ink-800/20 px-5 py-2 text-sm font-semibold text-ink-800 transition-colors hover:bg-cream-100"
+            >
+              Call {siteConfig.contact.phone}
+            </a>
+          </div>
+        </div>
       ) : null}
 
       <button
         type="submit"
-        disabled={status === "submitting"}
-        className="inline-flex items-center justify-center rounded-full bg-fiesta-500 px-6 py-3 text-sm font-semibold text-cream-50 transition-colors hover:bg-fiesta-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center justify-center rounded-full bg-fiesta-500 px-6 py-3 text-sm font-semibold text-cream-50 transition-colors hover:bg-fiesta-600"
       >
-        {status === "submitting" ? "Sending…" : "Send enquiry"}
+        Send enquiry on WhatsApp
       </button>
     </form>
   );
@@ -156,9 +197,7 @@ function Field({
         {label}
       </label>
       {children}
-      {error ? (
-        <p className={cn("mt-1.5 text-xs text-fiesta-600")}>{error}</p>
-      ) : null}
+      {error ? <p className="mt-1.5 text-xs text-fiesta-600">{error}</p> : null}
     </div>
   );
 }
